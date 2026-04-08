@@ -1,0 +1,21 @@
+ticker,company_name,sector
+AAPL,Apple Inc.,Information Technology
+MSFT,Microsoft Corporation,Information Technology
+GOOGL,Alphabet Inc.,Communication Services
+JNJ,Johnson & Johnson,Health Care
+UNH,UnitedHealth Group Inc.,Health Care
+PFE,Pfizer Inc.,Health Care
+JPM,JPMorgan Chase & Co.,Financials
+GS,"The Goldman Sachs Group, Inc.",Financials
+XOM,Exxon Mobil Corporation,Energy
+CVX,Chevron Corporation,Energy
+PG,The Procter & Gamble Company,Consumer Staples
+KO,The Coca-Cola Company,Consumer Staples
+CAT,Caterpillar Inc.,Industrials
+HON,Honeywell International Inc.,Industrials
+AMZN,"Amazon.com, Inc.",Consumer Discretionary
+NVDA,NVIDIA Corporation,Information Technology
+V,Visa Inc.,Financials
+LLY,Eli Lilly and Company,Health Care
+BA,The Boeing Company,Industrials
+MMM,3M Company,Industrials

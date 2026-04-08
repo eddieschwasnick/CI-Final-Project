@@ -1,5 +1,5 @@
 # config.yaml
 api_key_path: ".env"
-stock_universe: ["AAPL", "GOOGL", "MSFT"]
+stock_universe: ["AAPL", "MSFT", "GOOGL", "JNJ", "UNH", "PFE", "JPM", "GS", "XOM", "CVX", "PG", "KO", "CAT", "HON", "AMZN", "NVDA", "V", "LLY", "BA", "MMM"]
 output_directory: "./results"
 random_seed: 42
