@@ -1,0 +1,5 @@
+# config.yaml
+api_key_path: ".env"
+stock_universe: ["AAPL", "GOOGL", "MSFT"]
+output_directory: "./results"
+random_seed: 42

@@ -1,5 +1,19 @@
 import pandas as pd
 import yfinance as yf
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import scipy.stats as stats
+import statsmodels.api as sm
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+import warnings
+import anthropic
+warnings.filterwarnings("ignore")
 
 
 # Get market cap data for a specific ticker
