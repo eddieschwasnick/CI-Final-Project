@@ -1,21 +1,21 @@
 ticker,company_name,sector
-AAPL,Apple Inc.,Information Technology
-MSFT,Microsoft Corporation,Information Technology
-GOOGL,Alphabet Inc.,Communication Services
-JNJ,Johnson & Johnson,Health Care
-UNH,UnitedHealth Group Inc.,Health Care
-PFE,Pfizer Inc.,Health Care
-JPM,JPMorgan Chase & Co.,Financials
-GS,"The Goldman Sachs Group, Inc.",Financials
-XOM,Exxon Mobil Corporation,Energy
-CVX,Chevron Corporation,Energy
-PG,The Procter & Gamble Company,Consumer Staples
-KO,The Coca-Cola Company,Consumer Staples
-CAT,Caterpillar Inc.,Industrials
-HON,Honeywell International Inc.,Industrials
-AMZN,"Amazon.com, Inc.",Consumer Discretionary
-NVDA,NVIDIA Corporation,Information Technology
+AAPL,Apple Inc.,Technology
+MSFT,Microsoft Corp.,Technology
+GOOGL,Alphabet Inc.,Technology
+NVDA,NVIDIA Corp.,Technology
+JNJ,Johnson & Johnson,Healthcare
+UNH,UnitedHealth Group,Healthcare
+PFE,Pfizer Inc.,Healthcare
+JPM,JPMorgan Chase,Financials
+GS,Goldman Sachs,Financials
 V,Visa Inc.,Financials
-LLY,Eli Lilly and Company,Health Care
-BA,The Boeing Company,Industrials
+XOM,Exxon Mobil,Energy
+CVX,Chevron Corp.,Energy
+PG,Procter & Gamble,Consumer Goods
+KO,Coca-Cola Co.,Consumer Goods
+AMZN,Amazon.com Inc.,Consumer Goods
+CAT,Caterpillar Inc.,Industrials
+HON,Honeywell International,Industrials
+BA,Boeing Co.,Industrials
+LLY,Eli Lilly & Co.,Healthcare
 MMM,3M Company,Industrials
