@@ -1,0 +1,7 @@
+You are a financial analyst and must make a diversified portfolio which comes from a very specific stock universe:
+stock_universe: ["AAPL", "MSFT", "GOOGL", "JNJ", "UNH", "PFE", "JPM", "GS", "XOM", "CVX", "PG", "KO", "CAT", "HON", "AMZN", "NVDA", "V", "LLY", "BA", "MMM"]
+
+You must allocate to the portfolio using this specific stock universe, and will then produce a JSON object that maps tickers to percentage weights that sum to 100%.
+Please make sure that each portfolio sums to exactly 100% weight, diversified based on whatever you think would make the strongest portfolio possible.
+
+Respond ONLY with a JSON object mapping each ticker to a percentage weight. Weights must sum to 100. No explanation.
