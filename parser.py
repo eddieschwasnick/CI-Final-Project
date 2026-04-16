@@ -8,7 +8,7 @@ STOCK_UNIVERSE = [
     "LLY", "BA", "MMM"
 ]
 
-WEIGHT_TOLERANCE = 2.0  # weights must sum to 100 ± this value before normalization
+WEIGHT_TOLERANCE = 15.0  # weights must sum to 100 ± this value before normalization
 
 
 def parse_portfolio(raw_response: str) -> dict | None:

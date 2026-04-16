@@ -31,7 +31,7 @@ stock_universe:
 # LiteLLM is used for all calls — it routes Anthropic models too.
 model: "claude-sonnet-4-6"
 temperature: 0.7
-max_tokens: 512
+max_tokens: 1024
 
 # Experiment settings
 runs_per_condition: 30    # target 30–50; start with 5 for a pilot
