@@ -1,0 +1,161 @@
+======================================================================
+OLS Regressions — Treatment Effects on Portfolio Metrics
+Model: Y = α + β1*Fundamental + β2*Technical + β3*Combined + ε
+(Control is the omitted baseline.)
+======================================================================
+
+
+>>> OUTCOME: hhi
+----------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                    hhi   R-squared:                       0.823
+Model:                            OLS   Adj. R-squared:                  0.819
+Method:                 Least Squares   F-statistic:                     178.5
+Date:                Tue, 21 Apr 2026   Prob (F-statistic):           4.22e-43
+Time:                        17:45:23   Log-Likelihood:                 400.84
+No. Observations:                 119   AIC:                            -793.7
+Df Residuals:                     115   BIC:                            -782.6
+Df Model:                           3                                         
+Covariance Type:            nonrobust                                         
+===============================================================================
+                  coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------
+const           0.0599      0.002     38.682      0.000       0.057       0.063
+fundamental     0.0432      0.002     19.740      0.000       0.039       0.048
+technical       0.0157      0.002      7.123      0.000       0.011       0.020
+combined       -0.0012      0.002     -0.553      0.582      -0.006       0.003
+==============================================================================
+Omnibus:                       27.620   Durbin-Watson:                   1.627
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               60.824
+Skew:                           0.915   Prob(JB):                     6.20e-14
+Kurtosis:                       5.987   Cond. No.                         4.77
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+>>> OUTCOME: sector_hhi
+----------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             sector_hhi   R-squared:                       0.950
+Model:                            OLS   Adj. R-squared:                  0.948
+Method:                 Least Squares   F-statistic:                     721.8
+Date:                Tue, 21 Apr 2026   Prob (F-statistic):           2.13e-74
+Time:                        17:45:23   Log-Likelihood:                 308.62
+No. Observations:                 119   AIC:                            -609.2
+Df Residuals:                     115   BIC:                            -598.1
+Df Model:                           3                                         
+Covariance Type:            nonrobust                                         
+===============================================================================
+                  coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------
+const           0.2091      0.003     62.247      0.000       0.202       0.216
+fundamental     0.1573      0.005     33.100      0.000       0.148       0.167
+technical      -0.0361      0.005     -7.542      0.000      -0.046      -0.027
+combined       -0.0271      0.005     -5.699      0.000      -0.036      -0.018
+==============================================================================
+Omnibus:                       38.132   Durbin-Watson:                   1.930
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              348.513
+Skew:                           0.668   Prob(JB):                     2.10e-76
+Kurtosis:                      11.277   Cond. No.                         4.77
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+>>> OUTCOME: portfolio_beta
+----------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:         portfolio_beta   R-squared:                       0.968
+Model:                            OLS   Adj. R-squared:                  0.967
+Method:                 Least Squares   F-statistic:                     1154.
+Date:                Tue, 21 Apr 2026   Prob (F-statistic):           1.21e-85
+Time:                        17:45:23   Log-Likelihood:                 307.37
+No. Observations:                 119   AIC:                            -606.7
+Df Residuals:                     115   BIC:                            -595.6
+Df Model:                           3                                         
+Covariance Type:            nonrobust                                         
+===============================================================================
+                  coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------
+const           0.9205      0.003    271.139      0.000       0.914       0.927
+fundamental     0.1335      0.005     27.807      0.000       0.124       0.143
+technical      -0.1379      0.005    -28.473      0.000      -0.147      -0.128
+combined       -0.0704      0.005    -14.660      0.000      -0.080      -0.061
+==============================================================================
+Omnibus:                       12.689   Durbin-Watson:                   1.873
+Prob(Omnibus):                  0.002   Jarque-Bera (JB):               33.086
+Skew:                           0.239   Prob(JB):                     6.54e-08
+Kurtosis:                       5.538   Cond. No.                         4.77
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+>>> OUTCOME: portfolio_vol
+----------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:          portfolio_vol   R-squared:                       0.961
+Model:                            OLS   Adj. R-squared:                  0.960
+Method:                 Least Squares   F-statistic:                     941.6
+Date:                Tue, 21 Apr 2026   Prob (F-statistic):           9.75e-81
+Time:                        17:45:23   Log-Likelihood:                 16.143
+No. Observations:                 119   AIC:                            -24.29
+Df Residuals:                     115   BIC:                            -13.17
+Df Model:                           3                                         
+Covariance Type:            nonrobust                                         
+===============================================================================
+                  coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------
+const          29.8822      0.039    761.552      0.000      29.805      29.960
+fundamental     0.4047      0.055      7.293      0.000       0.295       0.515
+technical      -2.1867      0.056    -39.071      0.000      -2.298      -2.076
+combined       -1.4318      0.055    -25.802      0.000      -1.542      -1.322
+==============================================================================
+Omnibus:                        7.787   Durbin-Watson:                   2.027
+Prob(Omnibus):                  0.020   Jarque-Bera (JB):                8.858
+Skew:                          -0.413   Prob(JB):                       0.0119
+Kurtosis:                       4.050   Cond. No.                         4.77
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+>>> OUTCOME: breadth
+----------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                breadth   R-squared:                        -inf
+Model:                            OLS   Adj. R-squared:                   -inf
+Method:                 Least Squares   F-statistic:                    -38.33
+Date:                Tue, 21 Apr 2026   Prob (F-statistic):               1.00
+Time:                        17:45:23   Log-Likelihood:                 3766.1
+No. Observations:                 119   AIC:                            -7524.
+Df Residuals:                     115   BIC:                            -7513.
+Df Model:                           3                                         
+Covariance Type:            nonrobust                                         
+===============================================================================
+                  coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------
+const          20.0000   8.09e-16   2.47e+16      0.000      20.000      20.000
+fundamental -6.217e-15   1.14e-15     -5.433      0.000   -8.48e-15   -3.95e-15
+technical   -3.331e-15   1.15e-15     -2.886      0.005   -5.62e-15   -1.04e-15
+combined    -4.774e-15   1.14e-15     -4.171      0.000   -7.04e-15   -2.51e-15
+==============================================================================
+Omnibus:                       19.924   Durbin-Watson:                   0.654
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):                5.125
+Skew:                           0.000   Prob(JB):                       0.0771
+Kurtosis:                       1.983   Cond. No.                         4.77
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
