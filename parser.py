@@ -11,13 +11,17 @@ STOCK_UNIVERSE = [
 WEIGHT_TOLERANCE = 15.0  # weights must sum to 100 ± this value before normalization
 
 
-def parse_portfolio(raw_response: str) -> dict | None:
+def parse_portfolio(raw_response: str | None) -> dict | None:
     """
     Extract and validate a portfolio JSON object from a raw LLM response string.
 
     Returns a normalized dict {ticker: weight} where weights sum to exactly 100.0,
     or None if parsing fails.
     """
+    if raw_response is None or not str(raw_response).strip():
+        logging.warning("Empty/None response from model.")
+        return None
+
     # Step 1: extract JSON from the response
     portfolio = _extract_json(raw_response)
     if portfolio is None:

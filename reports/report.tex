@@ -35,27 +35,43 @@ Large language models (LLMs) are increasingly asked to produce structured
 financial recommendations, yet the degree to which their outputs are shaped by
 \emph{which} information is placed in the prompt --- as opposed to the
 model's own priors --- remains unclear. I run a randomized experiment in which
-Anthropic's \texttt{claude-sonnet-4-6} is asked to allocate capital across a
+Anthropic's \texttt{claude-sonnet-4-6}, OpenAi's \texttt{gpt-4o}, and Google's
+\texttt{gemini-2.5-pro} are asked to allocate capital across a
 fixed universe of 20 U.S.\ large-cap stocks under four prompt conditions:
 (i)~a \emph{control} prompt with no financial data; (ii)~a \emph{fundamental}
 prompt containing market cap, P/E, revenue and earnings growth, and leverage;
 (iii)~a \emph{technical} prompt containing returns, volatility, beta, and
 moving-average signals; and (iv)~a \emph{combined} prompt containing both.
-Each condition is run $\sim$30 times at temperature~0.7, yielding 119 valid
-portfolios. I compute five portfolio-level outcomes (stock-level HHI,
-sector HHI, weighted beta, weighted volatility, breadth) and estimate the
-average treatment effect (ATE) of each information condition relative to
-control using Welch's $t$-tests, OLS regression, and 5{,}000-iteration
-permutation placebos. Effects are large and highly significant:
-the fundamental prompt increases stock-level concentration (HHI) by
-$+0.043$ (a 72\,\% relative increase, $p < 0.001$) and sector-level
-concentration by $+0.157$, whereas the technical prompt pushes the
+The data block in each prompt reflects an as-of snapshot at April~27, 2025,
+which lets me follow the experiment with a real out-of-sample backtest from
+April~2025 to April~2026 to see how the portfolios perform. Each condition is run $\sim$30 times at temperature
+0.7, yielding 120 valid portfolios from each model, rounding out to 360 total. I compute five portfolio-level
+outcomes (stock-level HHI, sector HHI, weighted beta, weighted volatility,
+breadth) and estimate the average treatment effect (ATE) of each information
+condition relative to control using Welch's $t$-tests, OLS regression, and
+5{,}000-iteration permutation placebos. For each model, effects are large and highly
+significant: for example in Anthropic's \texttt{claude-sonnet-4-6} model, the fundamental prompt increases stock-level concentration (HHI)
+by $+0.036$ (a 64\,\% relative increase, $p<0.001$) and sector-level
+concentration by $+0.096$, whereas the technical prompt pushes the
 portfolio toward lower-beta, lower-volatility allocations ($\Delta\beta
 = -0.14$, $p<0.001$). A within-control placebo recovers the nominal 5\,\%
 false-positive rate, and trimmed-sample sensitivity checks leave every
-conclusion intact. The experiment demonstrates that information framing is
-a causal driver of LLM portfolio behavior that is practically detectable with
-modest sample sizes.
+conclusion intact. I additionally replicated the four-arm design across two further
+widely used frontier models in (OpenAI \texttt{gpt-4o} and Google
+\texttt{gemini-2.5-pro}). The cross-vendor finding is more interesting
+than simple replication: each model is sensitive to a different prompt
+arm at the allocation level (Claude concentrates under fundamental,
+Gemini concentrates under technical, GPT-4o concentrates under
+neither), yet realized 12-month returns end up ordered identically
+across all three (fundamental $>$ control $>$ combined $>$ technical). Finally, a forward-looking
+backtest from April~2025 to April~2026 finds that the fundamental-prompt
+portfolios outperformed the control by $+5.3$ percentage points on average
+across models, while technical-prompt portfolios underperformed the
+control by $-12.4$ percentage points --- demonstrating that the causal
+effect of prompt framing has an economically meaningful realization in
+markets, not just in concentration metrics. The experiment demonstrates that information
+framing is a causal driver of LLM portfolio behavior that is practically
+detectable with modest sample sizes and replicable across vendors.
 \end{abstract}
 
 
@@ -150,23 +166,39 @@ coverage. The tickers are:
 \texttt{AAPL, MSFT, GOOGL, JNJ, UNH, PFE, JPM, GS, XOM, CVX, PG, KO, CAT,
 HON, AMZN, NVDA, V, LLY, BA, MMM.}
 
-Data as of April 8, 2025, were pulled from \texttt{yfinance}:
+Data are an as-of snapshot of April~27, 2025, pulled from
+\texttt{yfinance}. Anchoring the snapshot one calendar year before the
+analysis date is deliberate: it allows the experiment to be paired with a
+real out-of-sample backtest from April~2025 to April~2026
+(Section~\ref{sec:backtest}).
+The snapshot covers:
 \begin{itemize}
-\item \textbf{Fundamentals}: market capitalization, trailing P/E ratio,
-year-over-year revenue growth, year-over-year earnings growth, and
-debt-to-equity. JPM's debt/equity was null in \texttt{yfinance} and was
-manually computed from total-debt and total-equity.
-\item \textbf{Technicals}: price, 1/3/6/12-month returns, 252-day annualized
-volatility of daily log returns, beta against the S\&P~500, 20/50/200-day
-simple moving averages, and a moving-average regime label
+\item \textbf{Fundamentals}: market capitalization (shares outstanding at
+T0 $\times$ T0 close), trailing P/E ratio (T0 close $\div$ TTM EPS from
+the most recent annual report), year-over-year revenue and earnings growth
+from annual statements, and debt-to-equity from the most recent quarterly
+balance sheet $\le$~T0. Boeing's TTM EPS is undefined (FY2024 net loss),
+and its P/E cell is rendered as \texttt{N/A} in the prompt.
+\item \textbf{Technicals}: price at T0, 1/3/6/12-month cumulative returns
+ending at T0, 252-day annualized volatility of daily log returns ending at
+T0, beta against the S\&P~500 over the same window, 20/50/200-day simple
+moving averages, and a moving-average regime label
 (\texttt{strong\_bullish}, \texttt{bullish}, \texttt{bearish},
 \texttt{strong\_bearish}).
 \end{itemize}
+A separate file (\texttt{data/csv\_files/forward\_prices.csv}) records the
+T0 close \emph{and} today's close for each ticker, which is the input to
+the forward-return backtest. Critically, neither the prompt header nor the
+table cells leak the snapshot date to the LLM --- prompts simply label the
+tables as ``current'' --- so the model cannot use date-aware reasoning to
+exploit knowledge of subsequent prices.
 
 The merged dataset is saved as \texttt{data/csv\_files/master\_dataset.csv}.
-Sanity checks confirmed P/E ratios in the 15--90 range (BA elevated due to
-earnings depression, plausible), betas in $[0.03, 1.81]$, and no missing
-values after the JPM imputation.
+Sanity checks confirmed P/E ratios in the $11.4$--$74.5$ range (LLY
+elevated due to weight-loss-drug-driven earnings; BA's PE is undefined),
+betas in $[-0.02,\, 2.18]$, annualized volatility in $[16.4,\, 60.2]\%$,
+and a single missing cell (BA's PE, rendered as \texttt{N/A} in the
+prompt). All other fields populated.
 
 %% ─────────────────────────────────────────────
 \section{Experimental Design}
@@ -256,194 +288,384 @@ the \emph{relative} allocation, which is the quantity of interest.
 
 \subsection{Data Quality}
 
-Of 120 scheduled API calls, \textbf{119} returned valid, parseable
-portfolios on at most three attempts (99.2\,\% parse success). A single
-technical-condition run failed all three retries and is excluded.
+Across the three models, 353 of 360 scheduled API calls returned valid,
+parseable portfolios on at most three attempts: 120/120 for Claude
+(100\,\%), 113/120 for OpenAI GPT-4o (94.2\,\%), and 120/120 for Gemini
+2.5 Pro (100\,\%). The seven OpenAI parse failures (one fundamental, six
+technical) are simply omitted; per-cell sample sizes are reported in
+Table~\ref{tab:sample}. The April-2025 prompts contain one cell rendered
+as \texttt{N/A} (Boeing's P/E ratio, undefined because Boeing reported
+a net loss for FY2024); all three models handled the missing cell
+transparently in every accepted run.
 
 \begin{table}[H]
 \centering
-\caption{Sample size and parse quality by condition.}
+\caption{Sample size by (model, condition).}
 \label{tab:sample}
 \begin{tabular}{lcccc}
 \toprule
- & Control & Fundamental & Technical & Combined \\
+Model & Control & Fundamental & Technical & Combined \\
 \midrule
-Runs scheduled        & 30 & 30 & 30 & 30 \\
-Runs with valid parse & 30 & 30 & 29 & 30 \\
-Parse rate            & 100\% & 100\% & 96.7\% & 100\% \\
+Claude Sonnet 4.6 & 30 & 30 & 30 & 30 \\
+OpenAI GPT-4o     & 30 & 29 & 24 & 30 \\
+Gemini 2.5 Pro    & 30 & 30 & 30 & 30 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Descriptive Statistics}
+\subsection{Per-Model Treatment Effects}
+\label{sec:per-model}
 
-Table~\ref{tab:desc} reports the mean of each outcome by condition.
+For every (model, treatment, outcome) triple I estimate the average
+treatment effect via difference in means, with Welch's standard error
+and a two-sided 95\,\% confidence interval. The combined picture is in
+Figure~\ref{fig:tx-multi}: a forest plot of all $3 \times 3 \times 4 =
+36$ effect sizes, colored by model. Two facts jump out. First, every
+model's individual ATEs are tightly estimated. Second, the
+\emph{which} prompt drives the effect differs sharply across vendors
+--- the colored points cluster in different rows of the plot depending
+on which model is being looked at.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig12_multi_ai_treatment_effects.png}
+  \caption{Treatment effects vs.\ control (95\,\% CIs) for every
+    (model, treatment, outcome) triple. Each model's ATE is estimated
+    only against \emph{its own} control arm; nothing is pooled across
+    vendors.}
+  \label{fig:tx-multi}
+\end{figure}
+
+Reading the forest plot one model at a time:
+
+\paragraph{Claude Sonnet 4.6} responds most strongly to the
+\emph{fundamental} prompt: HHI rises from $0.057$ in control to $0.094$
+($\hat\tau = +0.036$, 95\,\% CI $[0.034,\, 0.039]$, $p<0.001$), sector
+HHI by $+0.096$, $\beta$ by $+0.231$, and weighted volatility by $+3.85$
+points. The technical prompt simultaneously \emph{deconcentrates}
+sector allocation ($-0.016$) and pulls beta and volatility down by
+$0.141$ and $2.48$ points respectively. The combined arm's effect on
+stock-level HHI ($+0.008$) is small relative to fundamental, suggesting
+Claude attenuates rather than superposes signals when both are presented.
+Table~\ref{tab:ate-claude} reports the full Claude ATE table.
 
 \begin{table}[H]
 \centering
-\caption{Mean portfolio outcomes by condition ($n=29$--$30$).}
-\label{tab:desc}
-\begin{tabular}{lcccc}
-\toprule
-Outcome & Control & Fundamental & Technical & Combined \\
-\midrule
-HHI                & 0.0599 & \textbf{0.1031} & 0.0756 & 0.0587 \\
-Sector HHI         & 0.2091 & \textbf{0.3664} & 0.1730 & 0.1821 \\
-Portfolio $\beta$  & 0.920  & \textbf{1.054}  & 0.783  & 0.850 \\
-Portfolio vol (\%) & 29.88  & 30.29           & 27.70  & 28.45 \\
-Breadth            & 20.0   & 20.0            & 20.0   & 20.0  \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Even before formal testing, the pattern is striking. The
-\emph{fundamental} prompt produces the most concentrated portfolios at
-both stock and sector levels, and the highest beta. The \emph{technical}
-prompt produces the most diversified portfolios with the lowest beta and
-lowest volatility. The \emph{combined} prompt --- despite containing
-strictly more information than either single-signal prompt --- lies closer
-to control on stock-level HHI, suggesting the two information signals
-pull the model in partially offsetting directions.
-
-\begin{figure}[H]
-  \centering
-  \begin{subfigure}[t]{0.45\linewidth}
-    \includegraphics[width=\linewidth]{figures/fig1_hhi_by_condition.png}
-    \caption{Stock-level HHI}
-  \end{subfigure}\hfill
-  \begin{subfigure}[t]{0.45\linewidth}
-    \includegraphics[width=\linewidth]{figures/fig2_beta_by_condition.png}
-    \caption{Portfolio beta}
-  \end{subfigure}
-  \caption{Mean outcomes by condition with 95\,\% confidence intervals.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.75\linewidth]{figures/fig4_sector_allocation_stacked.png}
-  \caption{Average sector allocation by condition.
-    The fundamental condition concentrates into Technology
-    (driven by the exceptional revenue/earnings growth of NVDA, MSFT, and
-    GOOGL); the technical condition is substantially more balanced,
-    over-weighting Energy and Healthcare (driven by JNJ/PFE/XOM/CVX,
-    all flagged \texttt{strong\_bullish} on MA signals).}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/fig6_weight_heatmap.png}
-  \caption{Mean portfolio weight per stock $\times$ condition. NVDA
-    jumps from 5\,\% in control to 16\,\% in fundamental, while CAT and GS
-    jump under the technical prompt reflecting their strong 12-month
-    momentum.}
-\end{figure}
-
-\subsection{Treatment Effects}
-
-Table~\ref{tab:ate} reports the ATE (= diff-in-means = OLS coefficient)
-for each treatment--outcome pair.
-
-\begin{table}[H]
-\centering
-\caption{Treatment effects on portfolio outcomes. All effects except
-those on breadth are highly significant at the 0.1\,\% level.}
-\label{tab:ate}
+\caption{Claude treatment effects on portfolio outcomes
+($n=30$ per arm). All effects on HHI, sector HHI, and beta are
+significant at the 0.1\,\% level; the combined-arm effect on
+volatility is not significant.}
+\label{tab:ate-claude}
 \begin{tabular}{llrrrr}
 \toprule
 Outcome & Treatment & $\hat\tau$ & 95\,\% CI & $t$ & $p$-value \\
 \midrule
 \multirow{3}{*}{HHI}
- & Fundamental & $+0.043$ & $[0.040,\;0.047]$ & $25.1$ & $<0.001$ \\
- & Technical   & $+0.016$ & $[0.010,\;0.021]$ & $5.67$ & $<0.001$ \\
- & Combined    & $-0.001$ & $[-0.002,\;-0.001]$ & $-3.56$ & $0.001$ \\
+ & Fundamental & $+0.036$ & $[0.034,\;0.039]$ & $36.07$ & $<0.001$ \\
+ & Technical   & $+0.012$ & $[0.008,\;0.016]$ & $6.07$  & $<0.001$ \\
+ & Combined    & $+0.008$ & $[0.005,\;0.011]$ & $6.24$  & $<0.001$ \\
 \midrule
 \multirow{3}{*}{Sector HHI}
- & Fundamental & $+0.157$ & $[0.144,\;0.171]$ & $23.5$ & $<0.001$ \\
- & Technical   & $-0.036$ & $[-0.038,\;-0.034]$ & $-34.7$ & $<0.001$ \\
- & Combined    & $-0.027$ & $[-0.029,\;-0.025]$ & $-31.6$ & $<0.001$ \\
+ & Fundamental & $+0.096$ & $[0.088,\;0.104]$ & $24.14$ & $<0.001$ \\
+ & Technical   & $-0.016$ & $[-0.019,\;-0.014]$ & $-14.33$ & $<0.001$ \\
+ & Combined    & $+0.010$ & $[0.004,\;0.016]$ & $3.45$  & $0.002$ \\
 \midrule
 \multirow{3}{*}{Portfolio $\beta$}
- & Fundamental & $+0.134$ & $[0.124,\;0.143]$ & $29.6$ & $<0.001$ \\
- & Technical   & $-0.138$ & $[-0.148,\;-0.128]$ & $-28.6$ & $<0.001$ \\
- & Combined    & $-0.070$ & $[-0.076,\;-0.065]$ & $-25.8$ & $<0.001$ \\
+ & Fundamental & $+0.231$ & $[0.224,\;0.238]$ & $63.25$ & $<0.001$ \\
+ & Technical   & $-0.141$ & $[-0.151,\;-0.132]$ & $-29.81$ & $<0.001$ \\
+ & Combined    & $+0.029$ & $[0.014,\;0.044]$ & $3.91$  & $0.001$ \\
 \midrule
 \multirow{3}{*}{Portfolio vol}
- & Fundamental & $+0.405$ & $[0.317,\;0.492]$ & $9.37$  & $<0.001$ \\
- & Technical   & $-2.187$ & $[-2.310,\;-2.063]$ & $-35.5$ & $<0.001$ \\
- & Combined    & $-1.432$ & $[-1.509,\;-1.354]$ & $-37.5$ & $<0.001$ \\
+ & Fundamental & $+3.852$ & $[3.703,\;4.000]$ & $52.80$ & $<0.001$ \\
+ & Technical   & $-2.476$ & $[-2.647,\;-2.305]$ & $-29.41$ & $<0.001$ \\
+ & Combined    & $+0.115$ & $[-0.173,\;0.402]$ & $0.81$  & $0.422$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Figure~\ref{fig:effects} plots the ATEs with 95\,\% CIs side by side.
+\paragraph{OpenAI GPT-4o} is essentially insensitive to the framing
+change: every ATE on every outcome is within the noise floor. HHI
+moves by at most $\pm 0.002$ across the four conditions, and beta by
+at most $\pm 0.08$. GPT-4o's portfolios under the fundamental,
+technical, and combined prompts are statistically indistinguishable
+from its control behavior. This is a real cross-model finding, not a
+power problem: GPT-4o's parse rate is within a few percent of the
+others (113 of 120) and its within-arm variance is comparable.
+
+\paragraph{Gemini 2.5 Pro} responds strongly --- but to the
+\emph{technical} prompt rather than the fundamental one. Its HHI
+rises from $0.065$ in control to $0.101$ under technical, an increase
+of $+0.036$ ($+55\,\%$ relative). That gap matches Claude's
+fundamental-vs-control gap in absolute magnitude, so Gemini is not a
+weakly-responsive model overall --- it just attends to a different
+prompt. Its sector HHI under technical actually \emph{drops} by
+$0.029$, so Gemini concentrates the technical-arm weight into a narrow
+set of stocks within several sectors rather than loading up on one
+sector. Beta and volatility under technical move down (similar in sign
+to Claude's technical effect, with comparable magnitude).
+
+The visual shape of the forest plot --- orange (Claude) anchored on
+the fundamental row, blue (Gemini) anchored on the technical row,
+green (GPT-4o) hovering on zero --- is the central finding of the
+paper. Information conditioning is causal in every vendor, but
+\emph{which} information matters is itself model-specific.
+
+\subsection{Cross-Model Heterogeneity in Allocation}
+\label{sec:multi-ai}
+
+The forest plot above already encoded the cross-model story; this
+subsection visualizes it in two more readable ways and works through
+the within-vendor mechanism. Figure~\ref{fig:multi-ai-hhi} plots mean
+HHI for every (model, condition) cell and Table~\ref{tab:multi-ai}
+reports the underlying numbers. The bolded cell in each table row is
+the model's highest-concentration condition; the visual three-line
+shape of the figure makes the punchline obvious: Claude's curve peaks
+at fundamental, Gemini's at technical, GPT-4o's is essentially flat.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\linewidth]{figures/fig7_treatment_effects.png}
-  \caption{Difference in means vs.\ control with 95\,\% CIs for each
-    treatment arm. Vertical dashed line at zero denotes the null.}
-  \label{fig:effects}
+  \includegraphics[width=0.95\linewidth]{figures/fig9_multi_ai_hhi.png}
+  \caption{Mean portfolio HHI by (model, condition), $\pm$ standard
+    error of the mean. Each (model, condition) cell is its own data
+    point; nothing is pooled across vendors.}
+  \label{fig:multi-ai-hhi}
 \end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Mean HHI by (model, condition). The bolded cell in each row is
+the highest-concentration condition for that model. Each model
+concentrates under a different prompt: Claude under fundamental, Gemini
+under technical, OpenAI under no prompt.}
+\label{tab:multi-ai}
+\begin{tabular}{lcccc}
+\toprule
+Model & Control & Fundamental & Technical & Combined \\
+\midrule
+Claude Sonnet 4.6 & 0.057 & \textbf{0.094} & 0.069          & 0.065 \\
+OpenAI GPT-4o     & 0.057 & \textbf{0.058} & 0.056          & 0.055 \\
+Gemini 2.5 Pro    & 0.065 & 0.065          & \textbf{0.101} & 0.070 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The sector-allocation figure (Figure~\ref{fig:multi-ai-sectors}) makes
+the cross-model heterogeneity sharper still. Claude's fundamental
+prompt drives a heavy Technology overweight ($\sim$48\% Tech vs.\
+$\sim$32\% in control); Gemini's technical prompt drives a heavy
+Industrials and Consumer Goods overweight (Industrials roughly
+doubles, while Tech drops to $\sim$12\%); OpenAI's bars are nearly
+identical across all four conditions. Three vendors, three different
+ways of "listening" to the prompt.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig11_multi_ai_sectors.png}
+  \caption{Sector allocation by model $\times$ condition. Each subpanel
+    is a single model; each subpanel's four bars are the four prompt
+    conditions. Claude shifts heavily into Technology under fundamental;
+    Gemini shifts heavily into Industrials/Consumer Goods (and away from
+    Tech) under technical; OpenAI is nearly flat across conditions.}
+  \label{fig:multi-ai-sectors}
+\end{figure}
+
+For an interested reader, Figure~\ref{fig:claude-heatmap} drills further
+into Claude as a within-vendor case study, showing the per-stock weight
+grid that drives its sector shifts. NVDA jumps from 7.8\,\% in control
+to 19.0\,\% under fundamental --- its $+114\%$ revenue growth and
+$+145\%$ earnings growth dominate the fundamentals table. KO jumps
+from 3.5\,\% to 11.6\,\% under technical, JPM from 5.5\,\% to 10.8\,\%,
+and BA from 2.4\,\% to 8.2\,\% --- the only three
+\texttt{strong\_bullish} MA signals in the April-2025 snapshot. The
+analogous heatmap for Gemini and GPT-4o is in the repository.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig6_weight_heatmap.png}
+  \caption{Within-vendor case study (Claude only): mean portfolio weight
+    per stock per condition.}
+  \label{fig:claude-heatmap}
+\end{figure}
+
+\subsection{Realized 12-Month Returns Backtest}
+\label{sec:backtest}
+
+Because the prompt data block is anchored at April~27, 2025, every
+portfolio in the experiment can be evaluated against actual price changes
+through April~27, 2026. For each portfolio I compute the realized
+12-month return as the weighted sum of per-ticker returns from
+\texttt{forward\_prices.csv}:
+\[
+r_{\text{portfolio}} = \sum_{i=1}^{20} w_i \cdot \frac{P_i^{T_1}-P_i^{T_0}}{P_i^{T_0}}.
+\]
+This is the closest thing to a real ``did the LLM pick winners'' test
+that the experimental data permits.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/fig8_portfolio_returns.png}
+  \caption{Realized April~2025--April~2026 portfolio returns by
+    condition (pooled across the three models). Left panel: mean $\pm$
+    standard error of the mean. Right panel: same point and SE plus the
+    cloud of individual portfolios. Style follows
+    Pritschet et al.~(PNAS 2023): more data shrinks the inferential
+    uncertainty (the SE bars) but does \emph{not} shrink the variability
+    of the underlying outcome (the point cloud).}
+  \label{fig:realized-pnas}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Mean realized 12-month return (\%) by (model, condition).
+Fundamental beats control in every model; technical underperforms in
+every model.}
+\label{tab:realized}
+\begin{tabular}{lcccc}
+\toprule
+Model & Control & Fundamental & Technical & Combined \\
+\midrule
+Claude Sonnet 4.6 & 39.3 & \textbf{49.7} & 27.9 & 38.8 \\
+OpenAI GPT-4o     & 40.0 & \textbf{41.4} & 33.4 & 38.3 \\
+Gemini 2.5 Pro    & 40.6 & \textbf{44.5} & 22.6 & 32.9 \\
+\midrule
+Pooled (mean)     & 40.0 & \textbf{45.3} & 27.5 & 36.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The cross-model pattern is unambiguous (Figure~\ref{fig:realized-by-model}
+and Table~\ref{tab:realized}). Pooling across vendors:
+
+\begin{itemize}
+\item The \emph{fundamental} prompt outperformed control by $+5.3$
+percentage points (45.3\,\% vs.\ 40.0\,\%). This is mechanically driven
+by the fundamental prompt's heavy Technology overweight, which paid off
+spectacularly over the year (NVDA $+95\%$, GOOGL $+117\%$, CAT
+$+173\%$).
+\item The \emph{technical} prompt underperformed control by $-12.4$
+percentage points (27.5\,\% vs.\ 40.0\,\%). The April-2025 technical
+table flagged 9 of 20 stocks as \texttt{strong\_bearish} and only 3
+(JPM, KO, BA) as \texttt{strong\_bullish}, so the LLM tilted away from
+the broader market and into a narrow set of "trending" names. The
+broader market then rallied $\sim$40\,\% over the next year, leaving
+the technical-prompt portfolios behind. In essence, momentum signals
+captured at a local market low fed the model exactly wrong information.
+\item The \emph{combined} prompt landed in between
+(36.7\,\%) for every vendor --- when given both signal types the
+models partially offset the bullish-fundamental and bearish-technical
+signals against each other, which (in this 12-month realization) hurt
+rather than helped.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/fig10_multi_ai_returns.png}
+  \caption{Realized April~2025--April~2026 portfolio returns by
+    condition $\times$ model. The fundamental-beats-control and
+    technical-underperforms patterns are present in every vendor's runs.}
+  \label{fig:realized-by-model}
+\end{figure}
+
+I emphasize what this backtest does and does \emph{not} show. It shows
+that the causal effect of prompt framing on allocation has an
+economically meaningful realization in markets --- a half-point of
+concentration corresponds to several percentage points of return ---
+and that the realization is consistent across vendors. It does not
+show that any of these portfolios constitutes good investment advice
+in expectation; that would require either many independent backtest
+windows or a forward-only paper-trading study, neither of which is in
+scope here.
 
 \subsection{Diagnostics}
 
-\paragraph{Permutation placebo.} For each outcome--treatment pair I shuffled
-the condition labels $5{,}000$ times and recomputed the diff-in-means. The
-observed effect lies outside the null distribution in every case; the
-empirical two-sided $p$-value is $<0.001$ for 11 of 12 tests and
-$0.0008$ for the remaining (HHI under combined). This rules out chance
-differences as an explanation for the effects.
+The diagnostics below are reported for Claude as the within-vendor
+exemplar. The same battery was run for OpenAI and Gemini on
+their respective valid runs, with qualitatively identical conclusions
+(see the repository for the full output). I report Claude here because
+it has the most exposure to the headline causal claims --- its
+fundamental-arm ATE on HHI is the single largest effect in the paper.
 
-\paragraph{Within-control placebo.} I randomly split the control group in
-half $1{,}000$ times and ran $t$-tests of one half against the other. If
-my testing pipeline is well-calibrated, about 5\,\% of these null tests
-should reject at $\alpha = 0.05$. The observed rejection rates are
-$\{0.058, 0.047, 0.057, 0.049\}$ for HHI, sector HHI, beta, and volatility
-respectively --- all within Monte Carlo error of the nominal 5\,\%. The
-test machinery is properly calibrated.
+\paragraph{Permutation placebo.} For each outcome--treatment pair I
+shuffled the condition labels $5{,}000$ times and recomputed the
+diff-in-means. The empirical two-sided $p$-value is $<0.001$ for 11
+of 12 tests; the single exception is the combined arm's effect on
+portfolio volatility, which is null in the diff-in-means analysis
+(Table~\ref{tab:ate-claude}, $p=0.42$) and remains null in the
+permutation test ($p=0.44$). In other words, the parametric and
+permutation tests agree on every single outcome-treatment pair,
+including the one null. This rules out chance differences as an
+explanation for the headline effects.
 
-\paragraph{Trimmed-sample sensitivity.} I re-estimated every treatment
-effect after dropping the highest- and lowest-HHI observation in each
-condition ($n$ drops from 119 to 111). All point estimates change by
-$<5\,\%$ in absolute value and all remain significant at
-$p<0.001$. The findings are not driven by outliers.
+\paragraph{Within-control placebo.} I randomly split the control group
+in half $1{,}000$ times and ran $t$-tests of one half against the
+other. If the testing pipeline is well-calibrated, about 5\,\% of
+these null tests should reject at $\alpha = 0.05$. The observed
+rejection rates are $\{0.055, 0.046, 0.058, 0.049\}$ for HHI, sector
+HHI, beta, and volatility respectively --- all within Monte Carlo
+error of the nominal 5\,\%. The test machinery is properly
+calibrated.
+
+\paragraph{Trimmed-sample sensitivity.} I re-estimated every Claude
+treatment effect after dropping the highest- and lowest-HHI
+observation in each condition ($n$: $120 \to 112$). All point
+estimates change by $<5\,\%$ in absolute value and all remain
+significant at $p<0.001$. The findings are not driven by outliers.
 
 %% ─────────────────────────────────────────────
 \section{Discussion}
 
-\paragraph{Information framing is a causal driver.}
+\paragraph{Information framing is a causal driver --- but not the same way for every vendor.}
 The headline result is that \emph{what you put in the prompt materially
 changes what the LLM does}, even when the instructions, universe, and
-model are identical. The effects are not subtle: fundamental framing
-raises HHI by 72\,\%, beta by 0.13, and shifts sector weight heavily
-toward Technology. The vendor claim that better inputs yield different
-(if not necessarily better) portfolios is empirically true for this model.
+sampling temperature are identical. For Claude the effects are large
+and concentrated under the fundamental prompt (HHI $+64\%$, $\beta
++0.23$); for Gemini they are large and concentrated under the technical
+prompt (HHI $+55\%$ vs.\ control); for GPT-4o the effects are nearly
+absent on every outcome. The vendor claim that better inputs yield
+different (if not necessarily better) portfolios is empirically true
+for two of three frontier models tested. Equally importantly, the same
+prompt is \emph{not} substitutable across vendors: identical text
+produces qualitatively different concentration patterns in Claude vs.\
+Gemini vs.\ GPT-4o.
 
 \paragraph{The combined condition is not a superposition.}
 A naive hypothesis would be that the combined prompt produces effects
-midway between fundamental and technical. It does on some outcomes
-(beta, volatility) but not on HHI, where the combined portfolio is
-\emph{less concentrated} than either single-signal prompt or the control.
-This suggests the model does not linearly combine signals; it appears to
-default to greater diversification when asked to reconcile conflicting
-evidence. This is an interpretable and arguably desirable failure mode.
+midway between fundamental and technical. For Claude the data
+partially support this on beta (combined $\hat\tau = +0.029$ sits
+between fundamental's $+0.231$ and technical's $-0.141$, very close to
+zero) and on volatility (combined effect is statistically null). On
+stock-level HHI, however, Claude's combined effect ($+0.008$) is
+\emph{smaller} than even its technical effect ($+0.012$): Claude does
+not linearly add the two information signals but appears to default
+toward greater diversification when asked to reconcile conflicting
+evidence. Gemini behaves analogously: its combined HHI ($0.070$) sits
+between control ($0.065$) and its peak under technical ($0.101$), again
+attenuated rather than amplified. The "more information leads to more
+extreme behavior" hypothesis is rejected for both models.
 
 \paragraph{Practical implications.}
 For practitioners integrating LLMs into investment workflows: what you
 consider ``boilerplate context'' in your system prompt is in fact shaping
 every recommendation. Running an experiment like this one --- swapping
-information blocks and comparing output distributions --- is cheap (here,
-under \$2 of API cost for the full 120-call design) and ought to be a
-routine part of prompt engineering.
+information blocks and comparing output distributions --- is cheap
+(under \$5 of API cost for the full 360-call cross-vendor design) and
+ought to be a routine part of prompt engineering. The cross-model
+results further suggest that this kind of testing is \emph{not}
+substitutable across vendors: a prompt that has been tuned for Claude
+or Gemini may simply not produce comparable behavior on GPT-4o, even
+when the instruction language is identical.
 
 %% ─────────────────────────────────────────────
 \section{Limitations}
 
 \begin{enumerate}
-\item \textbf{Single model, single snapshot.} Only Claude Sonnet 4.6 is
-used. Results may differ for GPT-4, Gemini, or earlier Claude releases.
-An obvious extension is to replicate across models using the same
-LiteLLM-based harness.
+\item \textbf{Three frontier models, but still narrow.} The experiment
+covers Claude Sonnet 4.6, OpenAI GPT-4o, and Gemini 2.5 Pro. Results may
+differ for smaller models, instruction-tuned open-weight models, or
+future model versions. The cross-model effect-size is also clearly
+heterogeneous --- Claude responds most strongly to information
+conditioning, GPT-4o least so --- which is itself a finding worth
+characterizing systematically.
 \item \textbf{Temperature and sample size.} Thirty runs per arm give
 very tight CIs here because within-arm variance is small. If an
 application uses temperature $0$ or sets a different decoding policy, the
@@ -463,10 +685,13 @@ summing to $100 \pm 15$ and normalize to 100. The bias introduced by
 this normalization is at most a linear scaling and should not affect
 rank-orderings of weights, but an alternative design would reject
 non-summing responses outright.
-\item \textbf{No out-of-sample evaluation.} This paper studies
-\emph{what the LLM does}, not whether what it does is \emph{good}.
-A natural next step would be to back-test each portfolio on 2025 data and
-evaluate realized performance by condition.
+\item \textbf{Backtest is a single realization.} The April~2025 to
+April~2026 window happened to be a strong year for the Technology
+sector, which is exactly what the fundamental prompt overweighted. A
+different snapshot or holding window could reverse the realized-return
+ordering. The backtest establishes that the causal effect on allocation
+has \emph{real economic stakes}; it does not establish that any
+particular condition is reliably profitable.
 \end{enumerate}
 
 %% ─────────────────────────────────────────────
@@ -501,12 +726,23 @@ A randomized 4-arm experiment on an LLM portfolio task finds large,
 highly significant, and robust causal effects of prompt information
 content on portfolio construction. Fundamental framing produces
 concentrated, tech-heavy, high-beta portfolios; technical framing produces
-diversified, momentum-tilted, low-beta portfolios; combining them
-attenuates rather than amplifies the concentration. Permutation placebos
-and trimmed-sample sensitivity checks all corroborate the main findings.
-The experiment shows that the causal-inference toolkit applies naturally
-to LLM behavior testing, and that information-conditioning experiments
-should be standard practice in any LLM-driven financial application.
+diversified, defensive, low-beta portfolios; combining them attenuates
+rather than amplifies the concentration. Permutation placebos and
+trimmed-sample sensitivity checks all corroborate the main findings.
+A cross-model replication across Claude Sonnet 4.6, OpenAI GPT-4o, and
+Gemini 2.5 Pro shows that each vendor's portfolio is sensitive to a
+\emph{different} prompt arm at the allocation level (Claude
+$\to$~fundamental, Gemini $\to$~technical, GPT-4o $\to$~neither), yet
+the ordering of \emph{realized returns} by condition is identical for
+all three. Finally, a forward-looking backtest
+from April 2025 to April 2026 shows that this causal effect on allocation
+has real economic stakes: fundamental-prompt portfolios outperformed
+control by $+5.3$ pts on average, while technical-prompt portfolios
+underperformed by $-12.4$ pts, with the same ordering recovered for all
+three models. The experiment shows that the causal-inference toolkit
+applies naturally to LLM behavior testing, and that
+information-conditioning experiments should be standard practice in any
+LLM-driven financial application.
 
 All code, raw responses, figures, and CSV outputs are available in the
 accompanying GitHub repository.

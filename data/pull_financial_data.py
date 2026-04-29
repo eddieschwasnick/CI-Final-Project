@@ -47,8 +47,34 @@ warnings.filterwarnings("ignore")
 # CONFIGURATION
 # ============================================================================
 
-OUTPUT_DIR = "data"
+# Always write into data/csv_files (where the rest of the pipeline reads from),
+# regardless of the cwd from which this script is launched.
+_THIS_DIR  = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(_THIS_DIR, "csv_files")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# When set by the CLI (--as-of YYYY-MM-DD) all `--live` data pulls compute
+# metrics as of that historical date instead of today. This is what the backtest
+# section needs: the LLM should see the world as it looked at T0, and we will
+# compute realized returns from T0 → today separately.
+AS_OF_DATE = None  # type: pd.Timestamp | None
+
+
+def _strip_tz(idx):
+    try:
+        return idx.tz_localize(None)
+    except (AttributeError, TypeError):
+        return idx
+
+
+def _close_on_or_before(close_series: pd.Series, target: pd.Timestamp):
+    """(date, close) for the most recent trading day ≤ target."""
+    s = close_series.copy()
+    s.index = _strip_tz(s.index)
+    s = s[s.index <= target]
+    if s.empty:
+        raise ValueError(f"No price data on or before {target.date()}")
+    return s.index[-1], float(s.iloc[-1])
 
 # Stock universe: 20 large-cap U.S. stocks across 7 sectors
 STOCK_UNIVERSE = {
@@ -106,6 +132,170 @@ def save_stock_universe():
 # PHASE 1B: Pull Fundamental Data
 # ============================================================================
 
+def _historical_fundamentals(ticker, ticker_str: str, yf) -> dict:
+    """
+    Reconstruct fundamental fields AS OF AS_OF_DATE using:
+        - quarterly_financials       (revenue, net income → growth, TTM EPS)
+        - quarterly_balance_sheet    (total debt, equity → debt-to-equity)
+        - get_shares_full            (shares outstanding at T0 → market cap)
+        - history                    (price at T0)
+
+    Limitations:
+        yfinance only returns ~5 quarters of statements, so for AS_OF_DATE that
+        is more than ~12 months in the past some fields fall back to NaN.
+        Those rows will print as "N/A" when the prompt builder embeds the table.
+    """
+    out = {
+        "ticker":              ticker_str,
+        "market_cap":          None,
+        "pe_ratio":            None,
+        "revenue_growth_yoy":  None,
+        "earnings_growth_yoy": None,
+        "debt_to_equity":      None,
+        "total_debt":          None,
+    }
+
+    # Price at AS_OF_DATE (and shares for market cap)
+    hist = ticker.history(period="3y")
+    if hist.empty:
+        return out
+    close = hist["Close"].copy()
+    close.index = _strip_tz(close.index)
+    try:
+        _, price_t0 = _close_on_or_before(close, AS_OF_DATE)
+    except ValueError:
+        return out
+
+    shares_t0 = None
+    try:
+        shares_series = ticker.get_shares_full(
+            start=(AS_OF_DATE - pd.Timedelta(days=180)).strftime("%Y-%m-%d"),
+            end=(AS_OF_DATE + pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
+        )
+        if shares_series is not None and len(shares_series) > 0:
+            shares_series.index = _strip_tz(shares_series.index)
+            shares_series = shares_series[shares_series.index <= AS_OF_DATE]
+            if not shares_series.empty:
+                shares_t0 = float(shares_series.iloc[-1])
+                out["market_cap"] = int(shares_t0 * price_t0)
+    except Exception:
+        pass
+
+    # Quarterly income statement → revenue / earnings growth, TTM EPS
+    # Quarterly data only goes ~5 quarters back, so for a 1y-old AS-OF this
+    # frequently fails — we fall back to annual statements below.
+    try:
+        qf = ticker.quarterly_financials
+        if qf is not None and not qf.empty:
+            qf = qf.copy()
+            qf.columns = pd.to_datetime(qf.columns)
+            qf = qf.loc[:, qf.columns <= AS_OF_DATE].sort_index(axis=1)
+
+            def find_row(labels):
+                for L in labels:
+                    if L in qf.index:
+                        return qf.loc[L]
+                return None
+
+            def yoy_q(series):
+                if series is None or len(series) < 5:
+                    return None
+                latest = series.iloc[-1]
+                year_ago = series.iloc[-5]
+                if pd.isna(latest) or pd.isna(year_ago) or year_ago == 0:
+                    return None
+                return round(((latest - year_ago) / abs(year_ago)) * 100, 2)
+
+            rev  = find_row(["Total Revenue", "Revenue", "TotalRevenue"])
+            earn = find_row(["Net Income", "Net Income Common Stockholders",
+                             "NetIncome", "Net Income Continuous Operations"])
+            out["revenue_growth_yoy"]  = yoy_q(rev)
+            out["earnings_growth_yoy"] = yoy_q(earn)
+
+            if earn is not None and len(earn) >= 4 and shares_t0 and shares_t0 > 0:
+                ttm_ni = float(earn.iloc[-4:].sum())
+                eps = ttm_ni / shares_t0
+                if eps > 0:
+                    out["pe_ratio"] = round(price_t0 / eps, 2)
+    except Exception:
+        pass
+
+    # Annual income statement fallback for any of the 3 fields still missing.
+    # yfinance keeps ~4 years of annual data, which is enough for AS-OF dates
+    # up to a few years back. We only consider annual periods whose period-end
+    # is at least ~60 days before AS_OF_DATE (typical earnings-reporting lag).
+    needs_growth_rev  = out["revenue_growth_yoy"] is None
+    needs_growth_earn = out["earnings_growth_yoy"] is None
+    needs_pe          = out["pe_ratio"] is None
+    if needs_growth_rev or needs_growth_earn or needs_pe:
+        try:
+            af = ticker.income_stmt if hasattr(ticker, "income_stmt") else ticker.financials
+            if af is not None and not af.empty:
+                af = af.copy()
+                af.columns = pd.to_datetime(af.columns)
+                cutoff = AS_OF_DATE - pd.Timedelta(days=60)
+                af = af.loc[:, af.columns <= cutoff].sort_index(axis=1)
+
+                def find_a(labels):
+                    for L in labels:
+                        if L in af.index:
+                            return af.loc[L]
+                    return None
+
+                def yoy_a(series):
+                    if series is None or len(series) < 2:
+                        return None
+                    latest = series.iloc[-1]
+                    prior  = series.iloc[-2]
+                    if pd.isna(latest) or pd.isna(prior) or prior == 0:
+                        return None
+                    return round(((latest - prior) / abs(prior)) * 100, 2)
+
+                rev_a  = find_a(["Total Revenue", "Revenue", "TotalRevenue"])
+                earn_a = find_a(["Net Income", "Net Income Common Stockholders",
+                                 "NetIncome", "Net Income Continuous Operations"])
+                if needs_growth_rev:
+                    out["revenue_growth_yoy"]  = yoy_a(rev_a)
+                if needs_growth_earn:
+                    out["earnings_growth_yoy"] = yoy_a(earn_a)
+                if needs_pe and earn_a is not None and len(earn_a) >= 1 \
+                        and shares_t0 and shares_t0 > 0:
+                    annual_ni = float(earn_a.iloc[-1])
+                    eps = annual_ni / shares_t0
+                    if eps > 0:
+                        out["pe_ratio"] = round(price_t0 / eps, 2)
+        except Exception:
+            pass
+
+    # Quarterly balance sheet → debt-to-equity, total debt
+    try:
+        bs = ticker.quarterly_balance_sheet
+        if bs is not None and not bs.empty:
+            bs = bs.copy()
+            bs.columns = pd.to_datetime(bs.columns)
+            bs = bs.loc[:, bs.columns <= AS_OF_DATE].sort_index(axis=1)
+
+            def bs_val(labels):
+                for L in labels:
+                    if L in bs.index:
+                        v = bs.loc[L].dropna()
+                        if not v.empty:
+                            return float(v.iloc[-1])
+                return None
+
+            total_debt = bs_val(["Total Debt", "TotalDebt", "Long Term Debt"])
+            equity     = bs_val(["Stockholders Equity", "Total Stockholder Equity",
+                                 "Common Stock Equity", "StockholdersEquity"])
+            if total_debt is not None:
+                out["total_debt"] = int(total_debt)
+            if total_debt is not None and equity not in (None, 0):
+                out["debt_to_equity"] = round((total_debt / equity) * 100, 2)
+    except Exception:
+        pass
+
+    return out
+
+
 def pull_fundamental_data():
     """
     Pull fundamental indicators for each stock.
@@ -131,12 +321,22 @@ def pull_fundamental_data():
       both where the company stands and where it's heading.
     """
     print("\n[1B] Pulling fundamental data...")
+    if AS_OF_DATE is not None:
+        print(f"     (reconstructing fundamentals AS-OF {AS_OF_DATE.date()})")
     records = []
 
     for ticker_str in TICKERS:
         print(f"  Fetching fundamentals for {ticker_str}...", end=" ")
         try:
             ticker = yf.Ticker(ticker_str)
+
+            if AS_OF_DATE is not None:
+                rec = _historical_fundamentals(ticker, ticker_str, yf)
+                records.append(rec)
+                print("OK (historical)")
+                time.sleep(0.5)
+                continue
+
             info = ticker.info
 
             # --- Snapshot metrics ---
@@ -274,17 +474,26 @@ def pull_technical_data():
       widely used technical indicators and are easily interpretable in text form.
     """
     print("\n[1C] Pulling technical data...")
+    if AS_OF_DATE is not None:
+        print(f"     (computing metrics AS-OF {AS_OF_DATE.date()})")
 
-    # First, get S&P 500 data for beta calculation
+    # First, get S&P 500 data for beta calculation. Pull 3y so the trailing-252
+    # window still has data when AS_OF_DATE is up to ~2y in the past.
     print("  Fetching S&P 500 benchmark data...")
     sp500 = yf.Ticker("^GSPC")
-    sp500_hist = sp500.history(period="2y")
+    sp500_period = "3y" if AS_OF_DATE is not None else "2y"
+    sp500_hist = sp500.history(period=sp500_period)
 
     if sp500_hist.empty:
         raise ValueError("Could not fetch S&P 500 data. Check yfinance connection.")
 
-    sp500_returns = np.log(sp500_hist["Close"] / sp500_hist["Close"].shift(1)).dropna()
-    print(f"  S&P 500 data: {len(sp500_hist)} trading days")
+    sp500_close = sp500_hist["Close"].copy()
+    sp500_close.index = _strip_tz(sp500_close.index)
+    if AS_OF_DATE is not None:
+        sp500_close = sp500_close[sp500_close.index <= AS_OF_DATE]
+    sp500_returns = np.log(sp500_close / sp500_close.shift(1)).dropna()
+    print(f"  S&P 500 data: {len(sp500_close)} trading days through "
+          f"{sp500_close.index.max().date() if not sp500_close.empty else 'n/a'}")
 
     records = []
 
@@ -292,17 +501,25 @@ def pull_technical_data():
         print(f"  Fetching technicals for {ticker_str}...", end=" ")
         try:
             ticker = yf.Ticker(ticker_str)
-            hist = ticker.history(period="2y")  # Need 2 years for 252-day calculations
+            hist_period = "3y" if AS_OF_DATE is not None else "2y"
+            hist = ticker.history(period=hist_period)
 
-            if hist.empty or len(hist) < 252:
-                print(f"WARN: insufficient history ({len(hist)} days)")
+            if hist.empty:
+                print(f"WARN: no history")
                 records.append({"ticker": ticker_str})
                 continue
 
-            close = hist["Close"]
+            close = hist["Close"].copy()
+            close.index = _strip_tz(close.index)
+            if AS_OF_DATE is not None:
+                close = close[close.index <= AS_OF_DATE]
+            if len(close) < 252:
+                print(f"WARN: insufficient history ({len(close)} days)")
+                records.append({"ticker": ticker_str})
+                continue
             current_price = close.iloc[-1]
 
-            # --- Returns at multiple horizons ---
+            # --- Returns at multiple horizons (anchored at AS_OF_DATE if set) ---
             def calc_return(series, days):
                 if len(series) >= days:
                     return round(((series.iloc[-1] / series.iloc[-days]) - 1) * 100, 2)
@@ -315,12 +532,11 @@ def pull_technical_data():
 
             # --- Historical Volatility (annualized) ---
             log_returns = np.log(close / close.shift(1)).dropna()
-            # Use trailing 252 days
+            # Use trailing 252 days ending at the anchor date
             trailing_log_returns = log_returns.tail(252)
             volatility = round(trailing_log_returns.std() * np.sqrt(252) * 100, 2)
 
-            # --- Beta (vs S&P 500) ---
-            # Align dates between stock and S&P 500
+            # --- Beta (vs S&P 500), trailing 252 days ending at the anchor ---
             stock_returns = log_returns.tail(252)
             common_dates = stock_returns.index.intersection(sp500_returns.index)
 
@@ -331,11 +547,15 @@ def pull_technical_data():
                 cov_matrix = np.cov(sr, mr)
                 beta = round(cov_matrix[0, 1] / cov_matrix[1, 1], 2)
             else:
-                # Fallback to yfinance info beta
-                beta_info = ticker.info.get("beta", None)
-                beta = round(beta_info, 2) if beta_info is not None else None
+                # Fallback to yfinance info beta only when no anchor date is set
+                # (the .info value is "current", which would mismatch a historical pull).
+                if AS_OF_DATE is None:
+                    beta_info = ticker.info.get("beta", None)
+                    beta = round(beta_info, 2) if beta_info is not None else None
+                else:
+                    beta = None
 
-            # --- Moving Averages ---
+            # --- Moving Averages (computed on the AS_OF_DATE-truncated window) ---
             sma_20 = round(close.tail(20).mean(), 2)
             sma_50 = round(close.tail(50).mean(), 2)
             sma_200 = round(close.tail(200).mean(), 2)
@@ -599,21 +819,73 @@ def generate_sample_technical_data():
 # MAIN
 # ============================================================================
 
+def _emit_forward_prices(yf, as_of: pd.Timestamp):
+    """
+    Save the price at AS_OF and the price today for every ticker, so the
+    realized-return backtest can compute  (price_today / price_asof - 1) * 100
+    per stock and weight them by each portfolio's allocations.
+    """
+    today = pd.Timestamp(datetime.utcnow().date())
+    rows = []
+    for tk in TICKERS:
+        try:
+            h = yf.Ticker(tk).history(period="3y")["Close"].copy()
+            h.index = _strip_tz(h.index)
+            _, p0 = _close_on_or_before(h, as_of)
+            _, p1 = _close_on_or_before(h, today)
+            rows.append({
+                "ticker":      tk,
+                "asof_date":   as_of.date().isoformat(),
+                "asof_price":  round(p0, 2),
+                "today_date":  today.date().isoformat(),
+                "today_price": round(p1, 2),
+                "return_pct":  round((p1 / p0 - 1) * 100, 2) if p0 else None,
+            })
+        except Exception as e:
+            print(f"    forward-price ERROR for {tk}: {e}")
+            rows.append({"ticker": tk, "asof_date": as_of.date().isoformat()})
+    out = os.path.join(OUTPUT_DIR, "forward_prices.csv")
+    pd.DataFrame(rows).to_csv(out, index=False)
+    print(f"     Saved forward prices -> {out}")
+
+
 if __name__ == "__main__":
     import sys
+    import argparse
 
-    live_mode = "--live" in sys.argv
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--live", action="store_true",
+                    help="Pull real data from yfinance (otherwise demo mode).")
+    ap.add_argument("--as-of", default=None,
+                    help="Snapshot date YYYY-MM-DD. Implies --live. "
+                         "Default 'last-year' shortcut: --as-of last-year "
+                         "→ today minus 365 days.")
+    args = ap.parse_args()
+
+    live_mode = args.live or args.as_of is not None
+
+    if args.as_of:
+        if args.as_of.lower() == "last-year":
+            AS_OF_DATE = pd.Timestamp(datetime.utcnow().date()) - pd.Timedelta(days=365)
+        else:
+            AS_OF_DATE = pd.Timestamp(args.as_of).tz_localize(None) \
+                if pd.Timestamp(args.as_of).tzinfo is None \
+                else pd.Timestamp(args.as_of).tz_convert(None)
 
     print("=" * 60)
     print("LLM PORTFOLIO PROJECT — DATA COLLECTION")
     print(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print(f"Mode: {'LIVE (yfinance)' if live_mode else 'DEMO (sample data)'}")
+    if AS_OF_DATE is not None:
+        print(f"AS-OF: {AS_OF_DATE.date()}  (forward-prices file will be written)")
     print("=" * 60)
 
     if not live_mode:
         print("\n⚠ Running in DEMO mode with realistic sample data.")
         print("  To pull real data from Yahoo Finance, run:")
-        print("  python pull_financial_data.py --live\n")
+        print("  python pull_financial_data.py --live")
+        print("  To pull a one-year-ago snapshot:")
+        print("  python pull_financial_data.py --as-of last-year\n")
 
     universe_df = save_stock_universe()
 
@@ -633,6 +905,10 @@ if __name__ == "__main__":
         technical_df = generate_sample_technical_data()
 
     master_df = merge_and_validate(universe_df, fundamental_df, technical_df)
+
+    if AS_OF_DATE is not None and live_mode:
+        print("\n[1E] Emitting forward prices for realized-return backtest...")
+        _emit_forward_prices(yf, AS_OF_DATE)
 
     print("\n" + "=" * 60)
     print("DATA COLLECTION COMPLETE")

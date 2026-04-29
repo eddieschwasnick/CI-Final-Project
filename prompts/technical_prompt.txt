@@ -1,33 +1,33 @@
 You are a portfolio manager constructing an equity portfolio. You must allocate capital across the following 20 U.S. large-cap stocks and no others:
 
 STOCK UNIVERSE (20 tickers):
-AAPL, MSFT, GOOGL, JNJ, UNH, PFE, JPM, GS, XOM, CVX, PG, KO, CAT, HON, AMZN, NVDA, V, LLY, BA, MMM
+AAPL, MSFT, GOOGL, NVDA, AMZN, JNJ, UNH, PFE, LLY, JPM, GS, V, XOM, CVX, PG, KO, CAT, HON, BA, MMM
 
-TECHNICAL DATA (as of April 8, 2025):
+TECHNICAL DATA (current):
 Use the table below to inform your allocation. These are the only inputs you should use — do not rely on any other knowledge about these companies.
 
 | Ticker | Sector           | Price ($) | 1M Return (%) | 3M Return (%) | 6M Return (%) | 12M Return (%) | Volatility (%, Ann.) | Beta  | MA Signal      |
 |--------|------------------|-----------|---------------|---------------|---------------|----------------|----------------------|-------|----------------|
-| AAPL   | Technology       | 258.90    | -0.74         | -0.46         | +1.14         | +43.30         | 28.86                | 1.25  | bearish        |
-| MSFT   | Technology       | 374.33    | -7.75         | -22.40        | -28.26        | +5.40          | 26.03                | 0.96  | strong_bearish |
-| GOOGL  | Technology       | 317.32    | +3.35         | -1.38         | +29.29        | +116.98        | 30.15                | 1.11  | strong_bullish |
-| NVDA   | Technology       | 182.08    | -1.45         | -3.71         | -1.59         | +86.52         | 39.22                | 1.81  | bearish        |
-| AMZN   | Technology       | 221.25    | +3.23         | -8.41         | -0.24         | +26.24         | 33.39                | 1.42  | bullish        |
-| JNJ    | Healthcare       | 241.30    | -0.99         | +16.91        | +29.24        | +64.67         | 16.69                | 0.09  | strong_bullish |
-| UNH    | Healthcare       | 305.98    | +8.37         | -9.76         | -14.64        | -40.04         | 54.50                | 0.45  | bullish        |
-| PFE    | Healthcare       | 27.47     | +1.14         | +10.48        | +8.19         | +30.20         | 26.08                | 0.52  | strong_bullish |
-| LLY    | Healthcare       | 953.30    | -4.80         | -13.83        | +13.35        | +32.70         | 42.12                | 0.64  | bearish        |
-| JPM    | Financials       | 307.97    | +7.21         | -5.33         | +1.06         | +46.41         | 23.16                | 0.96  | bullish        |
-| GS     | Financials       | 905.75    | +8.63         | -3.24         | +15.88        | +98.60         | 29.65                | 1.36  | strong_bullish |
-| V      | Financials       | 308.96    | -1.74         | -13.01        | -11.98        | -0.34          | 22.42                | 0.76  | strong_bearish |
-| XOM    | Energy           | 156.22    | +5.46         | +32.72        | +38.84        | +56.97         | 24.30                | 0.24  | strong_bullish |
-| CVX    | Energy           | 192.89    | +3.54         | +25.50        | +27.14        | +43.82         | 23.64                | 0.38  | strong_bullish |
-| PG     | Consumer Staples | 144.90    | -7.12         | +5.71         | -3.67         | -7.09          | 18.29                | 0.14  | bearish        |
-| KO     | Consumer Staples | 77.29     | -0.08         | +15.22        | +17.34        | +16.32         | 15.96                | 0.03  | strong_bullish |
-| CAT    | Industrials      | 771.58    | +7.66         | +29.65        | +59.36        | +179.30        | 33.11                | 1.32  | strong_bullish |
-| HON    | Industrials      | 232.47    | -3.38         | +17.10        | +19.32        | +34.40         | 23.96                | 0.83  | bearish        |
-| BA     | Industrials      | 217.80    | +0.02         | -4.52         | -1.81         | +56.85         | 33.72                | 1.11  | bearish        |
-| MMM    | Industrials      | 149.17    | -3.92         | -8.02         | -3.12         | +18.18         | 29.00                | 1.07  | strong_bearish |
+| AAPL   | Technology       |    208.37 |          -6.5 |          -8.8 |          -9.1 |          +24.4 |                32.37 |  1.25 | strong_bearish |
+| MSFT   | Technology       |    388.87 |          +0.3 |          -9.7 |          -7.3 |           -3.5 |                24.86 |  0.99 | bullish        |
+| GOOGL  | Technology       |    161.40 |          -0.2 |         -15.5 |          -0.3 |           +2.3 |                31.67 |  1.10 | strong_bearish |
+| NVDA   | Technology       |    110.98 |          -0.4 |          -6.2 |         -20.4 |          +39.4 |                60.16 |  2.18 | strong_bearish |
+| AMZN   | Technology       |    188.99 |          -6.1 |         -19.7 |          +2.3 |           +7.0 |                33.80 |  1.36 | strong_bearish |
+| JNJ    | Healthcare       |    150.39 |          -5.2 |          +1.9 |          -5.3 |           +7.4 |                19.17 | -0.02 | bearish        |
+| UNH    | Healthcare       |    407.16 |         -18.8 |         -22.6 |         -25.2 |          -12.7 |                39.20 |  0.23 | strong_bearish |
+| PFE    | Healthcare       |     21.37 |          -8.4 |         -14.7 |         -18.0 |           -7.3 |                24.23 |  0.38 | strong_bearish |
+| LLY    | Healthcare       |    878.04 |          +7.7 |          +9.6 |          -1.7 |          +21.6 |                35.92 |  0.75 | bullish        |
+| JPM    | Financials       |    238.90 |          -1.2 |          -7.8 |         +10.2 |          +29.1 |                28.42 |  0.95 | strong_bullish |
+| GS     | Financials       |    533.80 |          -2.5 |         -13.5 |          +6.4 |          +31.6 |                33.58 |  1.36 | bearish        |
+| V      | Financials       |    332.68 |          -4.2 |          +0.4 |         +18.5 |          +22.8 |                21.89 |  0.73 | bearish        |
+| XOM    | Energy           |    104.96 |          -7.9 |          -0.6 |          -8.2 |           -7.3 |                23.94 |  0.52 | strong_bearish |
+| CVX    | Energy           |    132.76 |         -16.8 |         -10.8 |          -5.8 |          -11.5 |                25.28 |  0.69 | bearish        |
+| PG     | Consumer Staples |    156.52 |          -4.0 |          -4.5 |          -3.9 |           +1.4 |                18.88 |  0.11 | bearish        |
+| KO     | Consumer Staples |     69.88 |          +1.6 |         +13.4 |          +7.3 |          +20.3 |                16.41 |  0.08 | strong_bullish |
+| CAT    | Industrials      |    303.17 |          -9.2 |         -22.0 |         -19.9 |          -14.3 |                31.34 |  1.14 | strong_bearish |
+| HON    | Industrials      |    183.77 |          -7.0 |         -11.3 |          -8.7 |           +4.4 |                23.59 |  0.75 | strong_bearish |
+| BA     | Industrials      |    177.95 |          -0.7 |          +1.6 |         +13.3 |           +8.3 |                40.27 |  1.21 | strong_bullish |
+| MMM    | Industrials      |    134.84 |          -7.5 |          -8.9 |          +8.5 |          +52.6 |                34.28 |  0.97 | bearish        |
 
 MA SIGNAL KEY:
 - strong_bullish: price well above 50-day SMA, golden cross present

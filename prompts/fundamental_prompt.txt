@@ -1,33 +1,33 @@
 You are a portfolio manager constructing an equity portfolio. You must allocate capital across the following 20 U.S. large-cap stocks and no others:
 
 STOCK UNIVERSE (20 tickers):
-AAPL, MSFT, GOOGL, JNJ, UNH, PFE, JPM, GS, XOM, CVX, PG, KO, CAT, HON, AMZN, NVDA, V, LLY, BA, MMM
+AAPL, MSFT, GOOGL, NVDA, AMZN, JNJ, UNH, PFE, LLY, JPM, GS, V, XOM, CVX, PG, KO, CAT, HON, BA, MMM
 
-FUNDAMENTAL DATA (as of April 8, 2025):
+FUNDAMENTAL DATA (current):
 Use the table below to inform your allocation. These are the only inputs you should use — do not rely on any other knowledge about these companies.
 
 | Ticker | Sector           | Market Cap ($B) | P/E Ratio | Revenue Growth YoY (%) | Earnings Growth YoY (%) | Debt/Equity |
 |--------|------------------|-----------------|-----------|------------------------|--------------------------|-------------|
-| AAPL   | Technology       | 3,805           | 32.73     | +15.7                  | +18.3                    | 102.63      |
-| MSFT   | Technology       | 2,782           | 23.44     | +16.7                  | +59.8                    | 31.54       |
-| GOOGL  | Technology       | 3,839           | 29.35     | +18.0                  | +31.1                    | 16.13       |
-| NVDA   | Technology       | 4,425           | 37.16     | +73.2                  | +95.6                    | 7.25        |
-| AMZN   | Technology       | 2,375           | 30.90     | +13.6                  | +5.0                     | 43.44       |
-| JNJ    | Healthcare       | 582             | 21.86     | +9.1                   | +48.6                    | 60.50       |
-| UNH    | Healthcare       | 278             | 23.13     | +12.3                  | -99.9                    | 81.62       |
-| PFE    | Healthcare       | 156             | 20.20     | -1.2                   | -501.95                  | 77.96       |
-| LLY    | Healthcare       | 853             | 41.63     | +42.6                  | +51.4                    | 165.31      |
-| JPM    | Financials       | 831             | 15.38     | +2.5                   | -3.6                     | 158.49      |
-| GS     | Financials       | 269             | 17.65     | +15.2                  | +17.3                    | 596.07      |
-| V      | Financials       | 596             | 29.01     | +14.6                  | +17.4                    | 54.61       |
-| XOM    | Energy           | 651             | 23.32     | -1.3                   | -11.0                    | 18.94       |
-| CVX    | Energy           | 386             | 29.09     | -8.2                   | -23.8                    | 24.32       |
-| PG     | Consumer Staples | 339             | 21.47     | +1.5                   | -5.4                     | 68.72       |
-| KO     | Consumer Staples | 333             | 25.42     | +2.4                   | +3.6                     | 139.79      |
-| CAT    | Industrials      | 361             | 40.95     | +18.0                  | -11.4                    | 206.67      |
-| HON    | Industrials      | 148             | 33.50     | -3.3                   | -76.4                    | 236.61      |
-| BA     | Industrials      | 171             | 87.82     | +57.1                  | +312.68                  | 1,032.89    |
-| MMM    | Industrials      | 79              | 24.86     | +2.0                   | -19.9                    | 276.64      |
+| AAPL   | Technology       |           3,130 |     33.39 |                   +2.0 |                     -3.4 |      146.99 |
+| MSFT   | Technology       |           2,891 |     32.80 |                  +15.7 |                    +21.8 |       18.82 |
+| GOOGL  | Technology       |           1,947 |     19.45 |                  +13.9 |                    +35.7 |        3.15 |
+| NVDA   | Technology       |           2,708 |     37.16 |                +114.20 |                  +144.89 |       12.58 |
+| AMZN   | Technology       |           2,006 |     33.85 |                  +11.0 |                    +94.7 |       43.56 |
+| JNJ    | Healthcare       |             363 |     25.78 |                   +4.3 |                    -60.0 |       66.90 |
+| UNH    | Healthcare       |             376 |     26.07 |                   +7.7 |                    -35.6 |       85.51 |
+| PFE    | Healthcare       |             121 |     15.09 |                   +6.8 |                  +279.00 |       67.85 |
+| LLY    | Healthcare       |             788 |     74.45 |                  +32.0 |                  +102.10 |      244.32 |
+| JPM    | Financials       |             667 |     11.41 |                   +9.3 |                    +18.0 |      134.37 |
+| GS     | Financials       |             166 |     11.63 |                  +15.7 |                    +67.6 |      290.22 |
+| V      | Financials       |             643 |     32.56 |                  +10.0 |                    +14.3 |       54.59 |
+| XOM    | Energy           |             454 |     13.49 |                   +1.4 |                     -6.5 |       14.29 |
+| CVX    | Energy           |             232 |     13.16 |                   -1.8 |                    -17.4 |       19.89 |
+| PG     | Consumer Staples |             367 |     24.66 |                   +2.5 |                     +1.5 |       65.31 |
+| KO     | Consumer Staples |             303 |     28.53 |                   +2.9 |                     -0.8 |      187.43 |
+| CAT    | Industrials      |             145 |     13.44 |                   -3.4 |                     +4.4 |      213.58 |
+| HON    | Industrials      |             119 |     20.89 |                   +5.2 |                     +0.8 |      188.01 |
+| BA     | Industrials      |             134 |       N/A |                  -14.5 |                  -431.82 |   -1,612.57 |
+| MMM    | Industrials      |              73 |     17.59 |                   -0.1 |                  +159.66 |      315.12 |
 
 ALLOCATION INSTRUCTIONS:
 - Use the fundamental data above to determine each stock's weight.

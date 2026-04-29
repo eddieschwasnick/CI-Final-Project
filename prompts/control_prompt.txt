@@ -1,13 +1,13 @@
 You are a portfolio manager constructing an equity portfolio. You must allocate capital across the following 20 U.S. large-cap stocks and no others:
 
 STOCK UNIVERSE (20 tickers):
-AAPL, MSFT, GOOGL, JNJ, UNH, PFE, JPM, GS, XOM, CVX, PG, KO, CAT, HON, AMZN, NVDA, V, LLY, BA, MMM
+AAPL, MSFT, GOOGL, NVDA, AMZN, JNJ, UNH, PFE, LLY, JPM, GS, V, XOM, CVX, PG, KO, CAT, HON, BA, MMM
 
 INSTRUCTIONS:
 - Every ticker in the universe must receive a weight greater than 0%.
 - Weights must sum to exactly 100%.
-- Construct the portfolio you believe offers the best risk-adjusted return given your knowledge of these companies.
 - Do not concentrate more than 20% in any single stock.
+- Construct the portfolio you believe offers the best risk-adjusted return given your knowledge of these companies.
 
 BEFORE OUTPUTTING:
 Mentally sum your 20 weights. If they do not add up to exactly 100, rescale each weight proportionally (divide every weight by the total and multiply by 100) so that they do. Only output the final rescaled values.
